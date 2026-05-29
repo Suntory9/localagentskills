@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Novel Downloader"
+  short_description: "Search and download public web novels"
+  default_prompt: "Use $web-novel-downloader to search for a public web novel source and download chapters with Scrapy."
