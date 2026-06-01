@@ -12,9 +12,25 @@ Download web novel chapters from any publicly reachable source. Output is **TXT*
 
 ## Source Selection Strategy
 
-**优先找整本打包下载**（TXT/EPUB 直接下载），比逐章爬取更快更完整。搜索时加关键词如 `"{书名}" TXT下载`、`"{书名}" EPUB下载`、`"{title}" ebook download`，优先选择提供整本文件下载的电子书站（如 Z-Library、ixdzs 等），这类站点域名可能变化，以搜索结果为准。
+**优先找整本打包下载**（TXT/EPUB/ZIP 直接下载），比逐章爬取更快更完整。
 
-如果找到直接下载链接，用 `curl` 或 `wget` 下载即可，不需要跑 spider。只有在找不到打包下载时，才用 spider 逐章抓取。
+### 优先级 1：电子书站整本下载
+
+搜索时加关键词 `"{书名}" TXT下载`、`"{书名}" EPUB下载`、`"{title}" ebook download`。
+
+**优先尝试这些站点**（域名可能变化，以搜索为准）：
+
+| 站点 | 下载方式 | 示例 |
+|------|---------|------|
+| **ixdzs** (爱下电子书) | 搜索 → 拿到 book ID → `down7.ixdzs8.com/{id}.zip` | 搜索 `ixdzs8.com/bsearch?q=书名` |
+| **Z-Library** | 搜索 → 下载页 → 选格式 | 搜索 `zh.z-library.sk/s/书名` |
+| **知轩藏书** | 搜索 → 下载页 → TXT | 搜索 `zxcs.me` 或搜索引擎 |
+
+如果找到直接下载链接，用 `curl` 或 `wget` 下载即可，不需要跑 spider。
+
+### 优先级 2：逐章爬取（仅当找不到整本时）
+
+只有在所有电子书站都找不到打包下载时，才用 spider 逐章抓取。
 
 ## Backend Selection
 
@@ -55,9 +71,14 @@ All paths below assume commands are run from the **skill directory** (the direct
 Goal: find **at least 2 different sources** so we can cross-validate later.
 
 **Priority order:**
-1. Check **recommended sites** above (WebFetch the search page).
+1. **电子书站整本下载**（最重要！）— 直接搜 ixdzs、Z-Library：
+   ```bash
+   # ixdzs — 搜索并拿到 book ID，直接下载 ZIP
+   curl -sL "https://ixdzs8.com/bsearch?q=书名" | grep -oP '/read/\d+'
+   # 然后: curl -L -o "书名.zip" "https://down7.ixdzs8.com/{id}.zip"
+   ```
 2. Use **WebSearch** to find more sources:
-   - Chinese: `"{书名}" 全文免费阅读`, `"{书名}" TXT下载`
+   - Chinese: `"{书名}" TXT下载`, `"{书名}" 全文免费阅读`
    - English: `"{title}" novel read online free`, `"{title}" epub download`
 3. Fallback — script built-in search:
    ```bash
@@ -65,7 +86,17 @@ Goal: find **at least 2 different sources** so we can cross-validate later.
      --title "Novel Title" --dry-run-search --output-dir downloads
    ```
 
-### Step 2 — Download from source A
+### Step 2 — Download
+
+**如果找到整本下载链接（优先！）**：
+```bash
+# ixdzs ZIP 直链
+curl -L -o "downloads/<slug>/<title>.zip" "https://down7.ixdzs8.com/{book_id}.zip"
+# 或用 wget
+wget -O "downloads/<slug>/<title>.epub" "https://example.com/book.epub"
+```
+
+**如果只有章节列表页**，使用 spider。
 
 If the source has bot protection (Cloudflare, JS rendering), use the Scrapling backend:
 

@@ -80,7 +80,17 @@ class NovelScraplingSpider(Spider):
         *args,
         **kwargs,
     ):
+        # Session/config attributes MUST be set before super().__init__()
+        # because Spider.__init__ calls configure_sessions() which reads them.
+        self._stealth = stealth
+        self._headless = headless
+        self._impersonate = impersonate
+        self._network_idle = network_idle
+        self._solve_cloudflare = solve_cloudflare
+        self._session_id = "stealth" if stealth else "default"
+
         super().__init__(*args, **kwargs)
+
         # Set the initial URL
         if start_url:
             self.start_urls = [start_url]
@@ -93,18 +103,12 @@ class NovelScraplingSpider(Spider):
         self._title_css = title_css
         self._output_format = output_format
         self._source_name = source_name or (urlparse(start_url).netloc if start_url else "unknown")
-        self._stealth = stealth
-        self._impersonate = impersonate
-        self._headless = headless
-        self._network_idle = network_idle
-        self._solve_cloudflare = solve_cloudflare
 
         # Internal state
         self.chapters: list[Chapter] = []
         self._seen_chapter_urls: set[str] = set()
         self._chapter_count = 0
         self._toc_pages_visited: set[str] = set()
-        self._session_id = "stealth" if stealth else "default"
 
     # ------------------------------------------------------------------
     # Session configuration
