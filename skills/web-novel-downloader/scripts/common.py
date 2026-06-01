@@ -230,6 +230,34 @@ def load_existing_chapters(txt_path: Path) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
+# Element compatibility layer (Scrapy Selector vs Scrapling Adaptor)
+# ---------------------------------------------------------------------------
+
+
+def _get_href(element) -> str:
+    """Get href from an anchor element, compatible with both frameworks."""
+    if hasattr(element, "attrib"):
+        return element.attrib.get("href", "")
+    if hasattr(element, "attrs"):
+        return element.attrs.get("href", "")
+    return ""
+
+
+def _get_text_list(element) -> list[str]:
+    """Get text content list from an element, compatible with both frameworks."""
+    try:
+        result = element.css("::text").getall()
+        if result:
+            return result
+    except Exception:
+        pass
+    if hasattr(element, "text"):
+        t = element.text
+        return [t] if t else []
+    return []
+
+
+# ---------------------------------------------------------------------------
 # Chapter detection (framework-agnostic)
 # ---------------------------------------------------------------------------
 
@@ -259,8 +287,8 @@ def detect_by_link_structure(response, already_seen: set[str], logger=None):
     base_path = urlparse(response.url).path.rstrip("/")
 
     for anchor in response.css("a"):
-        href = anchor.attrib.get("href", "")
-        label = clean_text(anchor.css("::text").getall())
+        href = _get_href(anchor)
+        label = clean_text(_get_text_list(anchor))
         if not href or not label or len(label) < 2 or len(label) > 120:
             continue
         url = response.urljoin(href)
@@ -308,8 +336,8 @@ def extract_chapter_links(response, *, chapter_link_css=None, logger=None):
     found: list[tuple[str, str]] = []
     seen: set[str] = set()
     for anchor in response.css("a"):
-        href = anchor.attrib.get("href")
-        label = clean_text(anchor.css("::text").getall())
+        href = _get_href(anchor)
+        label = clean_text(_get_text_list(anchor))
         if not href or not label:
             continue
         if not looks_like_chapter(label, href):
@@ -355,12 +383,14 @@ def extract_content(response, *, content_css=None) -> str:
     """Extract chapter body text using CSS selectors.
 
     Accepts a duck-typed response with .css().getall().
-    No longer attempts element drop() — noise is handled by strip_noise().
+    Strategy: try narrow selectors first; if one returns enough content (>200 chars),
+    use it immediately. Only fall back to wider selectors if narrow ones fail.
     """
     if content_css:
         return clean_text(response.css(content_css).getall())
 
-    candidate_selectors = [
+    # Narrow selectors — high confidence, low noise
+    narrow_selectors = [
         "#content ::text",
         "#chapter-content ::text",
         "#chaptercontent ::text",
@@ -374,11 +404,19 @@ def extract_content(response, *, content_css=None) -> str:
         ".post-content ::text",
         ".novelcontent ::text",
         ".txt_cont ::text",
+    ]
+    for selector in narrow_selectors:
+        text = clean_text(response.css(selector).getall())
+        if len(text) > 200:
+            return text
+
+    # Wide selectors — more likely to include noise, use as fallback
+    wide_selectors = [
         "article ::text",
         "main ::text",
     ]
     best = ""
-    for selector in candidate_selectors:
+    for selector in wide_selectors:
         text = clean_text(response.css(selector).getall())
         if len(text) > len(best):
             best = text

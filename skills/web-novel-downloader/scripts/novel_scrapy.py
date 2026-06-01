@@ -9,8 +9,10 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 # --- Shared domain logic ---
-from common import (
+from common import (  # noqa: E402
     Chapter, slugify, clean_text, strip_noise,
     search_candidates, load_existing_chapters,
     write_txt, write_epub, build_source_digest, compare_digests,
@@ -184,8 +186,10 @@ class NovelSpider(scrapy.Spider):
             epub_path = self.output_dir / f"{slugify(self.novel_title)}.epub"
             write_epub(self.novel_title, chapters, epub_path)
 
-        # Digest (only when cross-validating)
-        if self._write_digest:
+        # Auto-digest: write when explicitly requested OR when other digests already exist
+        existing_digests = list(self.output_dir.glob("digest_*.json"))
+        should_write_digest = self._write_digest or len(existing_digests) > 0
+        if should_write_digest and chapters:
             digest = build_source_digest(
                 self.start_urls[0], self.source_name, chapters
             )
@@ -194,6 +198,13 @@ class NovelSpider(scrapy.Spider):
                 json.dumps(digest, indent=2, ensure_ascii=False), encoding="utf-8"
             )
             self.logger.info("Digest: %s", digest_path)
+
+        # Auto-compare: print report if 2+ digests now exist
+        all_digests = list(self.output_dir.glob("digest_*.json"))
+        if len(all_digests) >= 2:
+            report = compare_digests(self.output_dir)
+            if report:
+                print(report, file=sys.stderr)
 
         self.logger.info("Done: %d chapters from %s", len(chapters), self.source_name)
         self.logger.info("TXT: %s", txt_path)

@@ -131,6 +131,8 @@ python3 scripts/novel_scrapy.py \
 
 For first-time testing, add `--max-chapters 5` to verify quality.
 
+**Auto-fallback**: If Scrapy returns 0 chapters or all chapters are < 50 chars, the site likely has bot protection. Switch to Scrapling with `--stealth` and retry the same URL.
+
 ### Step 3 — Download from source B
 
 Repeat Step 2 with a different source, using a different `--source-name` (use `novel_scrapling.py` if source B has bot protection):
@@ -191,7 +193,7 @@ Tell the user:
 ## Key Behaviors
 
 - **TXT-first output**: Always writes TXT. EPUB is optional (`--format epub` or `--format both`).
-- **Source digests**: Opt-in via `--digest`. Only needed when cross-validating across multiple sources.
+- **Auto-digest**: When other `digest_*.json` files already exist in the output dir, new downloads automatically write their own digest and print a cross-validation report. Use `--digest` to force on first download.
 - **Pagination**: Automatically follows "下一页" / "Next" on chapter-list pages.
 - **Encoding fix**: Auto-detects GBK/GB2312 (requires `charset-normalizer`).
 - **Noise removal**: Strips watermark / ad text from chapter content.
@@ -227,49 +229,15 @@ with open('书名.zip', 'rb') as f:
 
 ### Z-Library
 
-完全 JS 渲染 + Cloudflare 保护，**必须用 Scrapling stealth + CDP 下载处理**：
+完全 JS 渲染 + Cloudflare 保护，需要 Scrapling stealth 模式。
 
-```python
-# Step 1: Scrapling stealth bypass CF, 搜索拿书籍链接
-# 搜索结果页: https://zh.z-library.sk/s/书名
-# 书籍详情: /book/{hash}/书名.html
-# 下载链接: /dl/{hash}
+**关键点：**
+- 搜索页 `/s/{书名}`、详情页 `/book/{hash}/`、下载链接 `/dl/{hash}`
+- `StealthySession.fetch()` 返回 `body=0`（全 JS 渲染），必须用 `page_action` 获取渲染后 DOM
+- 下载由浏览器触发（非 HTTP 直链），需通过 CDP `page.on('download')` 事件拦截文件保存
+- "Download is starting" 异常是预期行为，不需处理
 
-# Step 2: 下载需要配置 CDP download behavior
-from scrapling.fetchers import StealthyFetcher
-import asyncio, os
-
-async def do_download(page):
-    download_path = '/tmp/zlibrary'
-    os.makedirs(download_path, exist_ok=True)
-    
-    # 监听 download 事件
-    dl_future = asyncio.get_event_loop().create_future()
-    async def on_download(download):
-        path = os.path.join(download_path, download.suggested_filename)
-        await download.save_as(path)
-        dl_future.set_result(path)
-    page.on('download', on_download)
-    
-    # 访问下载链接触发下载
-    try:
-        await page.goto('https://zh.z-library.sk/dl/{hash}', 
-                       referer='https://zh.z-library.sk/book/{hash}/',
-                       timeout=30000)
-    except Exception as e:
-        if 'Download is starting' in str(e):
-            pass  # 预期行为
-    
-    return await asyncio.wait_for(dl_future, timeout=60)
-
-await StealthyFetcher.async_fetch(
-    'https://zh.z-library.sk/book/{hash}/书名.html',
-    headless=True, solve_cloudflare=True,
-    network_idle=True, page_action=do_download,
-)
-```
-
-**注意**: Z-Library 的 `StealthySession.fetch()` 返回 `body=0`（内容全 JS 渲染）。必须用 `page_action` 获取渲染后的 DOM 或用 CDP 拦截下载。
+**用法：** Scrapling `--stealth --solve-cloudflare --network-idle`，配合 `page_action` 处理下载事件。
 
 ## Troubleshooting
 
