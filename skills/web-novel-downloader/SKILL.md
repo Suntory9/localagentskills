@@ -225,7 +225,7 @@ with open('书名.zip', 'rb') as f:
 "
 ```
 
-**注意**: ixdzs 文件编碼是 GB18030（不是 UTF-8），直接读会乱码。必须用 `charset-normalizer` 检测后转码。
+**注意**: ixdzs 文件编碼是 GB18030（不是 UTF-8），直接读会乱码。必须用 `charset-normalizer` 检测后转码。如果 ixdzs8.com 不可访问（500/超时），换备用域名 `ixdzs.tw` 或 `ixdzs.hk`。
 
 ### Z-Library
 
