@@ -1,6 +1,6 @@
 ---
 name: web-novel-downloader
-description: Use this skill when the user gives a web novel name (or a chapter-list URL) and wants to download the full text. Searches the web for sources, picks the best one, and downloads all chapters into TXT (preferred) or EPUB files via Scrapy. Supports multi-source cross-validation.
+description: Use this skill when the user gives a web novel name (or a chapter-list URL) and wants to download the full text. Searches the web for sources, picks the best one, and downloads all chapters into TXT (preferred) or EPUB files via Scrapy (default) or Scrapling (anti-bot). Supports multi-source cross-validation.
 compatibility: Designed for Claude Code and Codex (or similar products). Requires Python 3.10+ and pip.
 ---
 
@@ -15,6 +15,28 @@ Download web novel chapters from any publicly reachable source. Output is **TXT*
 **优先找整本打包下载**（TXT/EPUB 直接下载），比逐章爬取更快更完整。搜索时加关键词如 `"{书名}" TXT下载`、`"{书名}" EPUB下载`、`"{title}" ebook download`，优先选择提供整本文件下载的电子书站（如 Z-Library、ixdzs 等），这类站点域名可能变化，以搜索结果为准。
 
 如果找到直接下载链接，用 `curl` 或 `wget` 下载即可，不需要跑 spider。只有在找不到打包下载时，才用 spider 逐章抓取。
+
+## Backend Selection
+
+Two download backends are available:
+
+| Backend | Script | When to use |
+|---------|--------|-------------|
+| **Scrapy** (default) | `novel_scrapy.py` | Standard sites without bot protection. Battle-tested, lightweight. |
+| **Scrapling** | `novel_scrapling.py` | Sites with Cloudflare, JS rendering, or aggressive anti-bot measures. |
+
+Both backends produce **identical output formats** (TXT, EPUB) and source digests, so you can freely mix them — e.g. download source A with Scrapy and source B with Scrapling, then cross-validate with `--compare`.
+
+### Scrapling Additional Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--stealth` | false | Use headless browser (`AsyncStealthySession`) for Cloudflare bypass |
+| `--no-headless` | false | Show browser window (debugging, only with `--stealth`) |
+| `--impersonate` | `chrome` | TLS fingerprint target: `chrome`, `firefox`, `safari`, `edge` |
+| `--network-idle` | false | Wait for network to settle before parsing (JS-heavy TOC pages) |
+| `--solve-cloudflare` | false | Actively solve Cloudflare challenges (only with `--stealth`) |
+| `--checkpoint-dir` | — | Enable pause/resume with checkpoint directory |
 
 ## Installation
 
@@ -45,12 +67,29 @@ Goal: find **at least 2 different sources** so we can cross-validate later.
 
 ### Step 2 — Download from source A
 
-If you got a direct TXT/EPUB file (e.g. from Z-Library or ixdzs):
+If the source has bot protection (Cloudflare, JS rendering), use the Scrapling backend:
+
 ```bash
-curl -L -o "downloads/<slug>/<title>.txt" "<download-url>"
+python3 scripts/novel_scrapling.py \
+  --title "Novel Title" \
+  --url "https://protected-site.com/novel/toc" \
+  --source-name "source-a" \
+  --output-dir downloads
 ```
 
-If the source is a chapter-list page, use the spider:
+If the site uses aggressive Cloudflare protection, add `--stealth`:
+
+```bash
+python3 scripts/novel_scrapling.py \
+  --title "Novel Title" \
+  --url "https://protected-site.com/novel/toc" \
+  --source-name "source-a" \
+  --output-dir downloads \
+  --stealth
+```
+
+Otherwise, use the default Scrapy backend:
+
 ```bash
 python3 scripts/novel_scrapy.py \
   --title "Novel Title" \
@@ -63,7 +102,8 @@ For first-time testing, add `--max-chapters 5` to verify quality.
 
 ### Step 3 — Download from source B
 
-Repeat Step 2 with a different source, using a different `--source-name`:
+Repeat Step 2 with a different source, using a different `--source-name` (use `novel_scrapling.py` if source B has bot protection):
+
 ```bash
 python3 scripts/novel_scrapy.py \
   --title "Novel Title" \
@@ -129,8 +169,11 @@ Tell the user:
 
 | Problem | Fix |
 |---------|-----|
+| Cloudflare / JS challenge / 403 | Switch to Scrapling backend with `--stealth --solve-cloudflare` |
+| JS-rendered page (empty content) | Use Scrapling with `--network-idle` |
 | Empty / boilerplate content | Site may use JS rendering — try a different source |
 | Garbled text | Install `charset-normalizer`: `pip install charset-normalizer` |
-| Rate limited / 403 | Use `--proxy` or find a different source |
+| Rate limited / 403 | For Scrapy: use `--proxy` or find a different source. For Scrapling: use `--stealth` |
 | Only first page of chapters | Find a "全部章节" link and use that as `--url` |
 | EPUB not generated | Install `ebooklib`: `pip install ebooklib` |
+| Scrapling not installed | `pip install 'scrapling[fetchers]'` then `scrapling install` |

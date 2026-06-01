@@ -1,3 +1,7 @@
+# Scrapy backend (default)
 scrapy>=2.16.0
+# Scrapling backend (optional: install 'scrapling[fetchers]' for stealth/anti-bot)
+scrapling>=0.1.0
+# Shared dependencies
 charset-normalizer>=3.0.0
 ebooklib>=0.18
