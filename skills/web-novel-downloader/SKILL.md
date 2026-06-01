@@ -196,6 +196,80 @@ Tell the user:
 - **Noise removal**: Strips watermark / ad text from chapter content.
 - **Structural detection**: Falls back to link-pattern heuristics when standard chapter patterns aren't found.
 
+## Site-Specific Patterns
+
+实战中验证过的站点下载模式，直接套用即可。
+
+### ixdzs (爱下电子书)
+
+整本 ZIP 下载，最简单可靠，**优先尝试**：
+
+```bash
+# Step 1: 搜索拿 book ID
+curl -sL "https://ixdzs8.com/bsearch?q=书名" \
+  -H "User-Agent: Mozilla/5.0 ... Chrome/125.0.0.0 Safari/537.36" \
+  | grep -oP 'data-url="/read/\d+/"'
+
+# Step 2: 直链下载 (book ID 替换到 URL)
+curl -L -o "书名.zip" "https://down7.ixdzs8.com/{book_id}.zip"
+
+# Step 3: 解压 + 转码 (文件通常是 GB18030 编码)
+python3 -c "
+from charset_normalizer import from_bytes
+with open('书名.zip', 'rb') as f:
+    raw = f.read()
+# 提取 ZIP 中的 txt, 检测编码, 转 UTF-8
+"
+```
+
+**注意**: ixdzs 文件编碼是 GB18030（不是 UTF-8），直接读会乱码。必须用 `charset-normalizer` 检测后转码。
+
+### Z-Library
+
+完全 JS 渲染 + Cloudflare 保护，**必须用 Scrapling stealth + CDP 下载处理**：
+
+```python
+# Step 1: Scrapling stealth bypass CF, 搜索拿书籍链接
+# 搜索结果页: https://zh.z-library.sk/s/书名
+# 书籍详情: /book/{hash}/书名.html
+# 下载链接: /dl/{hash}
+
+# Step 2: 下载需要配置 CDP download behavior
+from scrapling.fetchers import StealthyFetcher
+import asyncio, os
+
+async def do_download(page):
+    download_path = '/tmp/zlibrary'
+    os.makedirs(download_path, exist_ok=True)
+    
+    # 监听 download 事件
+    dl_future = asyncio.get_event_loop().create_future()
+    async def on_download(download):
+        path = os.path.join(download_path, download.suggested_filename)
+        await download.save_as(path)
+        dl_future.set_result(path)
+    page.on('download', on_download)
+    
+    # 访问下载链接触发下载
+    try:
+        await page.goto('https://zh.z-library.sk/dl/{hash}', 
+                       referer='https://zh.z-library.sk/book/{hash}/',
+                       timeout=30000)
+    except Exception as e:
+        if 'Download is starting' in str(e):
+            pass  # 预期行为
+    
+    return await asyncio.wait_for(dl_future, timeout=60)
+
+await StealthyFetcher.async_fetch(
+    'https://zh.z-library.sk/book/{hash}/书名.html',
+    headless=True, solve_cloudflare=True,
+    network_idle=True, page_action=do_download,
+)
+```
+
+**注意**: Z-Library 的 `StealthySession.fetch()` 返回 `body=0`（内容全 JS 渲染）。必须用 `page_action` 获取渲染后的 DOM 或用 CDP 拦截下载。
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -208,3 +282,6 @@ Tell the user:
 | Only first page of chapters | Find a "全部章节" link and use that as `--url` |
 | EPUB not generated | Install `ebooklib`: `pip install ebooklib` |
 | Scrapling not installed | `pip install 'scrapling[fetchers]'` then `scrapling install` |
+| ixdzs ZIP 乱码 | 文件是 GB18030 编码，需用 `charset-normalizer` 检测后转 UTF-8 |
+| Z-Library body 为空 | Z-Library 完全 JS 渲染，`fetch()` 返回空 body。用 `page_action` 获取 DOM 或 CDP 拦截下载 |
+| Z-Library "Download is starting" error | 这是预期行为——下载被浏览器触发。用 CDP `Browser.setDownloadBehavior` + `page.on('download')` 捕获文件 |
