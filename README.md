@@ -17,7 +17,7 @@ skills/
 
 | 技能 | 描述 |
 |------|------|
-| [web-novel-downloader](skills/web-novel-downloader/) | 网文下载器：搜索下载公开网络小说（TXT/EPUB），双后端（Scrapy 轻量 + Scrapling 反爬），支持多源交叉验证 |
+| [web-novel-downloader](skills/web-novel-downloader/) | 网文下载器：搜索下载公开网络小说（TXT/EPUB），**优先整本直链下载**（ixdzs/Z-Library），找不到才逐章爬取。双后端（Scrapy 轻量 + Scrapling 反爬 + Cloudflare 绕过），支持多源交叉验证 |
 
 ## 格式规范
 
@@ -58,6 +58,15 @@ cd ~/personal-skills && git pull
 # 如果 requirements.txt 有变动：
 python3 install.py --pip
 ```
+
+## 最近更新
+
+**web-novel-downloader v2** (2026-06)：
+- **优先整本下载**：新增 ixdzs（ZIP 直链）、Z-Library（EPUB）等整本书站下载模式，比逐章爬取快 100x+
+- **Scrapling 后端**：TLS 指纹伪装 + headless browser + Cloudflare Turnstile 绕过
+- **智能 digest**：跨源下载时自动写校验摘要、自动打印对比报告
+- **兼容层**：Scrapy/Scrapling 元素 API 差异抽象（`_get_href`/`_get_text_list`）
+- **分两阶段提取**：窄选择器优先（高置信度），宽选择器兜底
 
 ## 兼容性说明
 
