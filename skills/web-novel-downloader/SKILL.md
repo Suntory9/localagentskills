@@ -184,13 +184,14 @@ Tell the user:
 | `--content-css` | auto-detect | CSS selector for chapter body |
 | `--title-css` | auto-detect | CSS selector for chapter title |
 | `--proxy URL` | — | HTTP/SOCKS proxy |
-| `--compare` | false | Compare all digests and print validation report |
+| `--digest` | false | Write digest JSON for cross-validation (off by default) |
+| `--compare` | false | Compare all digest_*.json and print validation report |
 | `--dry-run-search` | false | Search only, don't crawl |
 
 ## Key Behaviors
 
 - **TXT-first output**: Always writes TXT. EPUB is optional (`--format epub` or `--format both`).
-- **Source digests**: Every download writes a `digest_<source>.json` for cross-validation.
+- **Source digests**: Opt-in via `--digest`. Only needed when cross-validating across multiple sources.
 - **Pagination**: Automatically follows "下一页" / "Next" on chapter-list pages.
 - **Encoding fix**: Auto-detects GBK/GB2312 (requires `charset-normalizer`).
 - **Noise removal**: Strips watermark / ad text from chapter content.

@@ -77,6 +77,7 @@ class NovelScraplingSpider(Spider):
         headless: bool = True,
         network_idle: bool = False,
         solve_cloudflare: bool = False,
+        write_digest: bool = False,
         *args,
         **kwargs,
     ):
@@ -103,6 +104,7 @@ class NovelScraplingSpider(Spider):
         self._title_css = title_css
         self._output_format = output_format
         self._source_name = source_name or (urlparse(start_url).netloc if start_url else "unknown")
+        self._write_digest = write_digest
 
         # Internal state
         self.chapters: list[Chapter] = []
@@ -165,20 +167,21 @@ class NovelScraplingSpider(Spider):
             epub_path = self._output_dir / f"{slugify(self._novel_title)}.epub"
             write_epub(self._novel_title, chapters, epub_path)
 
-        # Source digest for cross-validation (compatible with Scrapy backend)
-        digest = build_source_digest(
-            self.start_urls[0] if self.start_urls else "",
-            self._source_name,
-            chapters,
-        )
-        digest_path = self._output_dir / f"digest_{slugify(self._source_name)}.json"
-        digest_path.write_text(
-            json.dumps(digest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        # Source digest (only when cross-validating)
+        if self._write_digest:
+            digest = build_source_digest(
+                self.start_urls[0] if self.start_urls else "",
+                self._source_name,
+                chapters,
+            )
+            digest_path = self._output_dir / f"digest_{slugify(self._source_name)}.json"
+            digest_path.write_text(
+                json.dumps(digest, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
+            self.logger.info("Digest: %s", digest_path)
 
         self.logger.info("Done: %d chapters from %s", len(chapters), self._source_name)
         self.logger.info("TXT: %s", txt_path)
-        self.logger.info("Digest: %s", digest_path)
 
     # ------------------------------------------------------------------
     # Parse callbacks (async generators — required by Scrapling)
@@ -299,6 +302,10 @@ def parse_args() -> argparse.Namespace:
         help="Only search and write candidates.",
     )
     parser.add_argument(
+        "--digest", action="store_true",
+        help="Write digest_*.json for cross-validation (off by default).",
+    )
+    parser.add_argument(
         "--compare", action="store_true",
         help="Compare all digest_*.json in output dir and print validation report.",
     )
@@ -403,6 +410,7 @@ def main() -> int:
         headless=args.headless,
         network_idle=args.network_idle,
         solve_cloudflare=args.solve_cloudflare,
+        write_digest=args.digest,
         crawldir=args.checkpoint_dir,
     )
 

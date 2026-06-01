@@ -74,6 +74,7 @@ class NovelSpider(scrapy.Spider):
         title_css: str | None = None,
         output_format: str = "txt",
         source_name: str = "",
+        write_digest: bool = False,
         *args,
         **kwargs,
     ):
@@ -87,6 +88,7 @@ class NovelSpider(scrapy.Spider):
         self.title_css = title_css
         self.output_format = output_format
         self.source_name = source_name or urlparse(start_url).netloc
+        self._write_digest = write_digest
         self.chapters: list[Chapter] = []
         self.seen_chapter_urls: set[str] = set()
         self.chapter_count = 0
@@ -182,17 +184,19 @@ class NovelSpider(scrapy.Spider):
             epub_path = self.output_dir / f"{slugify(self.novel_title)}.epub"
             write_epub(self.novel_title, chapters, epub_path)
 
-        digest = build_source_digest(
-            self.start_urls[0], self.source_name, chapters
-        )
-        digest_path = self.output_dir / f"digest_{slugify(self.source_name)}.json"
-        digest_path.write_text(
-            json.dumps(digest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        # Digest (only when cross-validating)
+        if self._write_digest:
+            digest = build_source_digest(
+                self.start_urls[0], self.source_name, chapters
+            )
+            digest_path = self.output_dir / f"digest_{slugify(self.source_name)}.json"
+            digest_path.write_text(
+                json.dumps(digest, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
+            self.logger.info("Digest: %s", digest_path)
 
         self.logger.info("Done: %d chapters from %s", len(chapters), self.source_name)
         self.logger.info("TXT: %s", txt_path)
-        self.logger.info("Digest: %s", digest_path)
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +224,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-name", default="", help="Label for this source (used in digest filenames).")
     parser.add_argument("--dry-run-search", action="store_true", help="Only search & write candidates.")
     parser.add_argument("--proxy", help="HTTP/SOCKS proxy URL (e.g. http://127.0.0.1:7890).")
+    parser.add_argument(
+        "--digest", action="store_true",
+        help="Write digest_*.json for cross-validation (off by default).",
+    )
     parser.add_argument(
         "--compare", action="store_true",
         help="Compare all digest_*.json in output dir and print validation report.",
@@ -278,6 +286,7 @@ def main() -> int:
         title_css=args.title_css,
         output_format=args.output_format,
         source_name=args.source_name or urlparse(start_url).netloc,
+        write_digest=args.digest,
     )
     process.start()
     return 0
