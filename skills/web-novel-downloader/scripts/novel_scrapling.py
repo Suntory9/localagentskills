@@ -378,14 +378,10 @@ def main() -> int:
     if not start_url:
         print(f"[search] Searching for: {args.title}", file=sys.stderr)
         candidates = search_candidates(args.title)
-        candidates_path = novel_dir / "search_candidates.json"
-        candidates_path.write_text(
-            json.dumps(candidates, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
         if not candidates:
-            print(f"No candidates found. Wrote {candidates_path}", file=sys.stderr)
+            print("No candidates found.", file=sys.stderr)
             return 2
-        print(f"Wrote {len(candidates)} candidates to {candidates_path}")
+        print(f"Found {len(candidates)} candidates:")
         for idx, c in enumerate(candidates, start=1):
             print(f"  {idx}. [{c.get('engine', '')}] {c['title']} - {c['url']}")
         if args.dry_run_search:
