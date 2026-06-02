@@ -66,7 +66,7 @@ python3 install.py --pip
 - **ixdzs 全流程**：搜索→验证书名→ZIP 下载→GB18030 转码→内容确认→清理，6 步完整脚本
 - **Scrapling 后端**：TLS 指纹伪装 + headless browser + Cloudflare Turnstile 绕过
 - **Spider 防浪费规则**：先测 5 章确认可用 → 连续 2 次失败换源 → 限 3 轮搜索
-- **批次下载模式**：多本书时并行 curl ixdzs → 串行解压验证 → spider 兜底
+- **批次下载模式**：多本书时每书一个 subagent 并行全流程（ixdzs 5-8 并行，spider 2-3 并行），最后汇总报告
 
 ## 兼容性说明
 

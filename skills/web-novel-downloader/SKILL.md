@@ -224,14 +224,51 @@ Tell the user:
 
 ## Batch Download Mode
 
-When downloading multiple books (e.g., from a top-N list):
+When downloading multiple books (e.g., from a top-N list), use **subagents for maximum parallelism**. Each book's full pipeline (search → download → extract) is independent of others.
 
-1. **Phase 1 — ixdzs sweep（并行）**: curl 搜索所有书名，提取 ID
-2. **Phase 2 — Verify IDs（并行）**: curl 验证每个 ID 的书名页 title
-3. **Phase 3 — Download ZIPs（并行）**: curl 下载所有确认的 ZIP
-4. **Phase 4 — Extract & Convert（串行，防阻塞）**: 逐个解压转码验证
-5. **Phase 5 — Spider fallback（只对 ixdzs 没有的）**: 对剩余书目逐一 spider
-6. **Phase 6 — Report**: 汇总成功/失败，标注不可获取的原因
+### Subagent Strategy（推荐，3+ 本书时使用）
+
+```
+Dispatcher (主 agent)
+  ├── Agent 1: "下载《书名A》" — ixdzs 全流程
+  ├── Agent 2: "下载《书名B》" — ixdzs 全流程
+  ├── Agent 3: "下载《书名C》" — ixdzs 全流程
+  ├── Agent 4: "下载《书名D》" — 先试 ixdzs，没有则 spider
+  └── Agent 5: "下载《书名E》" — 先试 ixdzs，没有则 spider
+          ↓ 全部完成后
+  Dispatcher: 汇总报告（成功/失败/需要 spider 的）
+```
+
+**并发限制**：
+- ixdzs agent：可 5-8 个并行（curl 请求轻量，互不干扰）
+- spider agent：最多 2-3 个并行（spider 本身有并发请求，叠加过多会触发限流）
+
+**Dispatcher 执行流程**：
+
+```bash
+# Phase 1: 所有书先启动 ixdzs agent（并行）
+# 每本书一个 agent，内部执行搜索→验证→下载→解压→转码→确认
+for book in "书名1" "书名2" "书名3"; do
+  Agent "下载《$book》：先搜 ixdzs，找到后下载 ZIP 解压转 UTF-8" &
+done
+# 等待全部完成
+
+# Phase 2: 只对 ixdzs 没找到的书启动 spider agent（并行，限 2-3 个）
+for book in failed_books; do
+  Agent "下载《$book》：ixdzs 没有，用 spider 逐章下载" &
+done
+
+# Phase 3: 汇总报告
+```
+
+### 无 Subagent 时的备选方案（2 本以内）
+
+1. **Phase 1 — ixdzs sweep（并行 curl）**: 搜索所有书名，提取 ID
+2. **Phase 2 — Verify IDs（并行 curl）**: 验证每个 ID 的书名页 title
+3. **Phase 3 — Download ZIPs（并行 curl）**: 下载所有确认的 ZIP
+4. **Phase 4 — Extract & Convert（串行）**: 逐个解压转码验证
+5. **Phase 5 — Spider fallback（只对 ixdzs 没有的）**: 逐一下载
+6. **Phase 6 — Report**: 汇总成功/失败
 
 ## Handling Unfindable Books
 
