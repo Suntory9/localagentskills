@@ -62,11 +62,11 @@ python3 install.py --pip
 ## 最近更新
 
 **web-novel-downloader v2** (2026-06)：
-- **优先整本下载**：新增 ixdzs（ZIP 直链）、Z-Library（EPUB）等整本书站下载模式，比逐章爬取快 100x+
+- **Token 效率优化**：ixdzs 整本 ZIP ~5K token/本 vs spider 逐章 15-35K+，优先用 ixdzs
+- **ixdzs 全流程**：搜索→验证书名→ZIP 下载→GB18030 转码→内容确认→清理，6 步完整脚本
 - **Scrapling 后端**：TLS 指纹伪装 + headless browser + Cloudflare Turnstile 绕过
-- **智能 digest**：跨源下载时自动写校验摘要、自动打印对比报告
-- **兼容层**：Scrapy/Scrapling 元素 API 差异抽象（`_get_href`/`_get_text_list`）
-- **分两阶段提取**：窄选择器优先（高置信度），宽选择器兜底
+- **Spider 防浪费规则**：先测 5 章确认可用 → 连续 2 次失败换源 → 限 3 轮搜索
+- **批次下载模式**：多本书时并行 curl ixdzs → 串行解压验证 → spider 兜底
 
 ## 兼容性说明
 
