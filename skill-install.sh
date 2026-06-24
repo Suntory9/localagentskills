@@ -154,5 +154,22 @@ else
   echo -e "  ${GREEN}✓ .claude/skills → .agents/skills${NC}"
 fi
 
+# ── .gitignore（git 项目自动忽略 .agents 和 .claude）────────────────────────
+if git -C "$TARGET" rev-parse --git-dir &>/dev/null 2>&1; then
+  GITIGNORE="$TARGET/.gitignore"
+  added=()
+  for entry in ".agents" ".claude"; do
+    if ! grep -qxF "$entry" "$GITIGNORE" 2>/dev/null; then
+      echo "$entry" >> "$GITIGNORE"
+      added+=("$entry")
+    fi
+  done
+  if [ "${#added[@]}" -gt 0 ]; then
+    echo -e "  ${GREEN}✓ .gitignore${NC}（已添加：${added[*]}）"
+  else
+    echo -e "  ${YELLOW}↺ .gitignore${NC}（已包含，跳过）"
+  fi
+fi
+
 echo ""
 echo -e "${GREEN}${BOLD}完成！${NC} 已安装 ${#SELECTED[@]} 个 skill 到 ${BOLD}$TARGET${NC}"
