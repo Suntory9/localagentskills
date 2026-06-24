@@ -1,0 +1,4 @@
+interface:
+  display_name: "xdoa-skill"
+  short_description: "Install xdoa if needed, then use it for office docs, OA lookups, and flow submission"
+  default_prompt: "Use $xdoa-skill to install xdoa when missing, answer office or IT questions from internal docs, perform live OA lookups, and run flow submission workflows when needed."

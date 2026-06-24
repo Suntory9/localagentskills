@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Fullstack Orchestrator"
+  short_description: "Coordinate Jira work across backend and client repos"
+  default_prompt: "Use $jira-fullstack-orchestrator to read a Jira issue, split backend and client work, and maintain shared execution docs."

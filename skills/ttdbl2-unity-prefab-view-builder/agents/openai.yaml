@@ -1,0 +1,10 @@
+interface:
+  display_name: "TTDBL2 Unity Prefab View Builder"
+  short_description: "从示意图与参考 Prefab 生成 ttdbl2_unity 的 Unity uGUI 预制体与匹配的 Lua View"
+  default_prompt: "Use $ttdbl2-unity-prefab-view-builder to turn a UI mockup or reference prefab into a ttdbl2_unity prefab plus matching Lua View with UnityMCP."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "unityMCP"
+      description: "UnityMCP is required to inspect Unity assets, edit scene objects, and save generated prefabs."

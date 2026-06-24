@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Unity To Tw"
+  short_description: "Port Unity Jira fixes safely onto the TW branch"
+  default_prompt: "Use $jira-unity-to-tw to sync the TW worktree, cherry-pick a Jira fix, validate it, and optionally push."

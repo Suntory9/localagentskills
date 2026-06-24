@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Submit To Git"
+  short_description: "Submit Jira local changes to the repo's configured trunk"
+  default_prompt: "Use $jira-submit-to-git to submit existing local changes to the configured trunk; infer the Jira key from the current conversation when it is unambiguous."

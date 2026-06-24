@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Unity To Main"
+  short_description: "Read Jira, review changes, commit, and push"
+  default_prompt: "Use [$atlassian-rovo](app://connector_692de805e3ec8191834719067174a384) to fetch the Jira summary first, then use $jira-unity-to-main to sync the target branch, review and validate existing Unity changes, and submit the commit."

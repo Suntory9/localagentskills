@@ -1,0 +1,40 @@
+{
+  "repos": {
+    "/Users/songdc/ttdbl2_unity": {
+      "branch": "2023-11-28-Unity2021-3-13",
+      "dirty_ignore_paths": [
+        "Assets/Art/",
+        "Assets/Models/",
+        "Assets/TextMesh Pro/",
+        "Assets/Scripts/LuaScript/Data/ConfigTableCN/",
+        "Assets/Scripts/LuaScript/Data/ConfigTableGL/"
+      ],
+      "after_push": ["weekly_report", "jira_test_comment"]
+    },
+    "/Users/songdc/ttdbl2_protobuf": {
+      "branch": "develop",
+      "after_push": ["sync_to_unity", "weekly_report", "jira_test_comment"],
+      "sync_to_unity": {
+        "unity_repo": "/Users/songdc/ttdbl2_unity",
+        "unity_proto_dir": "Assets/Config/ttdbl2_protobuf"
+      }
+    },
+    "/Users/songdc/zserver": {
+      "branch": "develop",
+      "pre_commit": ["make_pbproto_if_proto_changed"],
+      "after_push": ["weekly_report", "jira_test_comment"]
+    },
+    "/Users/songdc/saga-exporter": {
+      "branch": "master",
+      "after_push": ["trigger_excel_export", "weekly_report", "jira_test_comment"],
+      "excel_export": {
+        "enabled": true,
+        "base_url": "http://172.26.148.34:9010",
+        "app": "saga",
+        "branch": "trunk-tw",
+        "author": "songdc",
+        "tables_config": "/Users/songdc/saga-exporter/tables/tables.json"
+      }
+    }
+  }
+}

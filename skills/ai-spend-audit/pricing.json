@@ -1,0 +1,77 @@
+{
+  "pricing_version": "2026-06-04.2",
+  "last_reviewed": "2026-06-04",
+  "_billing_note": "Per-channel billing mode. metered = pay-per-token API key (the API-equivalent $ IS real cash; volume AND waste both matter). subscription = flat monthly plan (marginal cost ~= $0; the $ is a what-if yardstick, NOT a bill; using more is fine — only hunt genuinely wasteful tokens). The map below is a COMMON DEFAULT (Claude/XDT metered, Codex on a ChatGPT subscription); adjust per family to match the user's own accounts, and when unsure ask rather than assume.",
+  "billing": {
+    "claude": "metered",
+    "codex": "subscription",
+    "default": "metered"
+  },
+  "_comment": "API-equivalent list prices in USD per 1,000,000 tokens. VERIFIED 2026-06-04 against vendor pricing pages (Anthropic: platform.claude.com/docs/about-claude/pricing; OpenAI: openai.com/api/pricing). Rates apply to every source to produce one comparable token-spend yardstick; XDT daily_spend (if present) is shown separately as a real-cash reference. On subscription plans these are what-if dollars, not bills. RE-VERIFY before trusting absolute numbers; vendor prices move.",
+  "_fields": {
+    "input": "uncached input tokens",
+    "output": "output tokens (includes reasoning tokens for OpenAI models)",
+    "cache_read": "tokens served from prompt cache",
+    "cache_write_5m": "tokens written to 5-minute cache (Anthropic)",
+    "cache_write_1h": "tokens written to 1-hour cache (Anthropic)"
+  },
+  "models": {
+    "claude-opus-4": {
+      "input": 5.0, "output": 25.0, "cache_read": 0.50, "cache_write_5m": 6.25, "cache_write_1h": 10.0
+    },
+    "claude-sonnet-4": {
+      "input": 3.0, "output": 15.0, "cache_read": 0.30, "cache_write_5m": 3.75, "cache_write_1h": 6.0
+    },
+    "claude-haiku-4": {
+      "input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write_5m": 1.25, "cache_write_1h": 2.0
+    },
+    "gpt-5.5": {
+      "input": 5.0, "output": 30.0, "cache_read": 0.50, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "gpt-5-codex": {
+      "input": 5.0, "output": 30.0, "cache_read": 0.50, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "gpt-5": {
+      "input": 1.25, "output": 10.0, "cache_read": 0.125, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "claude-opus-4-fast": {
+      "input": 30.0, "output": 150.0, "cache_read": 3.0, "cache_write_5m": 37.5, "cache_write_1h": 60.0
+    },
+    "gpt-5.x-priority": {
+      "input": 12.5, "output": 75.0, "cache_read": 1.25, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "gpt-5.x-above272k": {
+      "input": 10.0, "output": 45.0, "cache_read": 1.0, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "gemini-pro": {
+      "input": 2.0, "output": 12.0, "cache_read": 0.2, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "gemini-flash": {
+      "input": 0.3, "output": 2.5, "cache_read": 0.03, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "grok-4": {
+      "input": 3.0, "output": 15.0, "cache_read": 0.75, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "grok": {
+      "input": 1.25, "output": 2.5, "cache_read": 0.3125, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "deepseek": {
+      "input": 0.28, "output": 0.42, "cache_read": 0.028, "cache_write_5m": 0.0, "cache_write_1h": 0.0
+    },
+    "_default": {
+      "input": 3.0, "output": 15.0, "cache_read": 0.30, "cache_write_5m": 3.75, "cache_write_1h": 6.0
+    }
+  },
+  "_notes": [
+    "Anthropic Opus 4.5+ (incl. 4.7 / 4.8) = $5 in / $25 out (a 67% cut from the old $15/$75 Opus-4/4.1 era). Cache: write-5m 1.25x input = $6.25, write-1h 2x input = $10, read 0.1x = $0.50.",
+    "OpenAI GPT-5.5 (since 2026-04-23) = $5 in / $30 out / $0.50 cached input; no separate cache-write fee. Prompts >272K input tokens are billed 2x input / 1.5x output for the session (NOT modeled here; observed Codex turns were <272K). Codex uses the gpt-5.5-class model.",
+    "Sonnet 4.6 $3/$15 and Haiku 4.5 $1/$5 are unchanged from prior gens.",
+    "Codex/Claude on a Pro/Max subscription is a flat fee; the dollar figure is an API-equivalent what-if, not an actual charge.",
+    "OpenAI output_tokens already include reasoning tokens in Codex local logs; reasoning_output_tokens is retained for diagnostics but not added again by the analyzer.",
+    "1M-context (one_m) Claude sessions: Sonnet 4.6 and Opus 4.x now include the full 1M window at standard rate (no >200K surcharge), so the one_m flag no longer implies a 2x premium for those models.",
+    "PROVENANCE: never set these from model memory. Claude rates cross-checked against XDT Maker's own cc-code model-cost table where an XDT source tree is available (the source XDT uses for daily_spend; a manually-maintained code table, NOT a live API) plus platform.claude.com/pricing. OpenAI/Codex rates from openai.com/api/pricing. See SKILL.md 'price-source rule'.",
+    "FAST / PRIORITY tiers (speed levers): claude-opus-4-fast = Opus fast mode at 2x ($30/$150, write $37.5, read $3) per XDT modelCost.ts COST_TIER_30_150; applied per-message when usage.speed=='fast'. gpt-5.x-priority = GPT-5.5 Priority tier $12.50/$75, cached $1.25 (2.5x) — CROSS-VALIDATED against CodexBar CostUsagePricing.swift (gpt-5.5 priorityInput 1.25e-5, priorityOutput 7.5e-5, priorityCacheRead 1.25e-6). Codex service tier is now detected PER-TURN from ~/.codex/logs_2.sqlite websocket request bodies (service_tier:'priority'/'default'...), keyed by turn_id and matched to rollout turn_context.turn_id (mirrors CodexBar CostUsageScanner+CodexPriority.swift). Turns not found in the logs fall back to the config-level service_tier from ~/.codex/config.toml. gpt-5.x-above272k is the >272K-input threshold tier ($10/$45/$1, gpt-5.5) applied to NON-priority turns whose input>272k; priority is flat (overrides threshold, since CodexBar has no priority-above field).",
+    "Pre-4.5 Opus 4/4.1 were $15/$75; this table maps every 'opus' to the current $5/$25 tier, so older Opus would be under-priced if it appears.",
+    "Multi-vendor (verified 2026-06-04, flagship tiers; other variants fall to _default + UNKNOWN warning → look up & add): Gemini 3 Pro $2/$12 cache $0.2 (>200k doubles, not modeled); Gemini 2.5 Flash $0.3/$2.5 cache $0.03 (ai.google.dev/gemini-api/docs/pricing). xAI Grok 4 $3/$15 cache $0.75; Grok 4.3 (current flagship, 'grok' key) $1.25/$2.5 (docs.x.ai). DeepSeek V3.2 $0.28/$0.42 cache $0.028 (api-docs.deepseek.com). Exact model ids that match a key are used directly; otherwise model_key() routes by family (gemini→pro/flash, grok→grok, deepseek→deepseek)."
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "_comment": "Local-log TOKEN-COST provider registry for ai-spend-audit. Each entry points at on-disk session files a tool writes WITH per-message token usage (or pre-computed USD). Built-in formats (builtin:claude/codex/xdt) have dedicated readers and always run when their data exists; their entries here are documentation. `format` selects the reader: generic_jsonl | pi_jsonl | opencode_sqlite | builtin:*. Adding a tool that writes simple per-message token JSONL = one generic_jsonl entry, no code. Absent roots no-op silently (tool not installed), so enabled adapters are safe to ship. SCOPE: this skill ONLY covers tools that write reliable local per-token data. Tools that expose usage solely via an authenticated quota API/cookie (Gemini CLI, Amp, Grok, DeepSeek, Cursor, Copilot, Windsurf) are intentionally NOT supported — their numbers are %/dollars not tokens, the auth is fragile, and (e.g. Cursor) tokens aren't even exposed. Format knowledge below was verified against steipete/CodexBar.",
+  "_field_map_keys": "For generic_jsonl `fields`: type_key/type_value (optional row filter), model, ts (ISO/epoch s/epoch ms; omit to window by file mtime), input, output, cache_read, cache_write — each is a dotted path OR a list of dotted-path aliases (first present wins). cached_in_input:true subtracts cache_read from input when the provider's input count already INCLUDES cache (e.g. Gemini promptTokenCount). Per-entry `billing` (metered|subscription) overrides model-derived billing for the whole tool.",
+  "providers": [
+    {
+      "name": "Claude Code", "format": "builtin:claude", "billing": "metered",
+      "enabled": true, "coverage": "token-cost",
+      "_note": "read_claude(): $CLAUDE_CONFIG_DIR/projects, ~/.config/claude/projects, ~/.claude/projects. Streaming dedup by (message.id,requestId) + 5m/1h cache split + fast-mode (usage.speed). Vertex-routed Claude lands in the same logs (model carries @date) and is priced by family."
+    },
+    {
+      "name": "Codex", "format": "builtin:codex", "billing": "subscription",
+      "enabled": true, "coverage": "token-cost",
+      "_note": "read_codex(): $CODEX_HOME, ~/.codex, XDT codex-home. Per-turn priority via ~/.codex/logs_2.sqlite (service_tier) + >272k threshold tier. Host=rollout originator (XDT only when orca worker/lead)."
+    },
+    {
+      "name": "XDT Maker", "format": "builtin:xdt", "billing": "metered",
+      "enabled": true, "coverage": "token-cost",
+      "_note": "read_xdt_*(): auto-detected only if the XDT sqlite DB exists. Provides dedup metadata + daily_spend real-cash ledger + schedules + agent_meta fallback."
+    },
+
+    {
+      "name": "Pi", "format": "pi_jsonl", "billing": "subscription",
+      "enabled": true, "coverage": "token-cost", "format_verified": false,
+      "roots": [{"env": "PI_HOME", "path": "~/.pi/agent/sessions", "glob": "**/*.jsonl"}],
+      "_note": "read_pi(): faithful port of CodexBar PiSessionCostScanner. A `model_change` line sets the current (provider, model); each assistant `message` carries message.usage (many aliases). Pi proxies upstreams: openai-codex→gpt-5.x pricing (cache-write folded into input), anthropic→claude pricing (cache-write separate). Rows with an unknown provider tag are dropped. Pi's own plan = subscription. Enabled (no-ops if ~/.pi absent); verify field shape against real logs before trusting $ on a machine that has Pi."
+    },
+    {
+      "name": "OpenCode", "format": "opencode_sqlite", "billing": "metered",
+      "enabled": true, "coverage": "cost-only", "format_verified": false,
+      "opencode_provider_id": "opencode-go",
+      "roots": [{"env": "OPENCODE_DATA", "path": "~/.local/share/opencode", "glob": "*.db"}],
+      "_note": "read_opencode_sqlite(): OpenCode-Go stores a PRE-COMPUTED USD cost per assistant message in opencode.db (json_extract data.$.cost, role=assistant, providerID=opencode-go). We book the dollars directly; there is NO token breakdown so these sessions don't appear in token charts. Real spend → metered. The non-Go OpenCode is cookie/web quota-only → out of scope (see _not_supported)."
+    },
+
+    {
+      "name": "OpenClaw", "format": "openclaw", "billing": "",
+      "enabled": true, "coverage": "token-cost", "format_verified": true,
+      "roots": [{"env": "OPENCLAW_HOME", "path": "~/.openclaw", "glob": "**/*.jsonl"}],
+      "_note": "read_openclaw(): OpenClaw is a multi-agent framework. Each agent nests a STANDARD Codex home at agents/<agent>/agent/codex-home (read with the Codex parser incl. per-home priority via that home's logs_2.sqlite) — authoritative for codex-backed turns. Native session logs agents/<agent>/sessions/*.jsonl (trajectory `model.completed` events + newer `message` logs) are read ONLY for non-Codex backends (anthropic/bedrock/…); codex rows there are skipped to avoid double-counting #1. All attributed to source 'OpenClaw'. billing:'' means derive per model family (codex→subscription, claude→metered). No-op if ~/.openclaw absent. Run the engine ON the machine that has OpenClaw (e.g. via ssh) since it reads local files."
+    },
+    {
+      "name": "_example-generic-tool", "format": "generic_jsonl", "billing": "metered",
+      "enabled": false, "coverage": "token-cost", "format_verified": false,
+      "roots": [{"env": "MYTOOL_HOME", "path": "~/.mytool/sessions", "glob": "**/*.jsonl"}],
+      "model": "gpt-5.5",
+      "fields": {
+        "type_key": "type", "type_value": "assistant",
+        "model": "message.model",
+        "ts": ["timestamp", "message.timestamp"],
+        "input": ["message.usage.input_tokens", "message.usage.input"],
+        "output": ["message.usage.output_tokens", "message.usage.output"],
+        "cache_read": ["message.usage.cache_read_input_tokens", "message.usage.cacheRead"],
+        "cache_write": ["message.usage.cache_creation_input_tokens", "message.usage.cacheWrite"]
+      },
+      "_note": "TEMPLATE for ANY tool that writes per-message token usage to JSONL. Copy it, set name/roots/fields/billing, flip enabled:true. Each field accepts a dotted path or an alias list (first match wins). Verify against the tool's real logs, then set format_verified:true."
+    }
+  ],
+  "_not_supported": "Intentionally OUT OF SCOPE — tools without reliable local per-token logs: Gemini CLI (OAuth quota only), Amp (ampcode.com cookie + HTML), Grok (grok.com RPC/cookie; local signals.json has unpriced counts only), DeepSeek (API balance/usage endpoint), Cursor & Windsurf (Cursor stores tokens only for chat-mode bubbles — agent mode is 0 — and exposes NO tokens server-side, only dollar/percent quota behind a fragile browser cookie; CodexBar itself sets supportsTokenCost:false for Cursor). These were evaluated and dropped on purpose: their output is %/dollars not tokens, and the auth is brittle. Adding guessed field maps for them would silently produce fake numbers.",
+  "_roadmap_local_token_tools": "Candidates that DO write local per-token (or per-cost) data — paths from general knowledge, NOT yet verified, so add as enabled:false until confirmed on a machine that has them: (1) Continue.dev — `~/.continue/dev_data/**/*.jsonl` token events (generic_jsonl). (2) Aider — `~/.aider/analytics.jsonl` / `.aider.chat.history` events with tokens+cost. (3) Cline / Roo Code (VS Code extensions) — globalStorage `.../saoudrizwan.claude-dev/tasks/<id>/ui_messages.json` carries per-task tokensIn/Out + apiCost (JSON; would need a small dedicated reader like opencode_sqlite). (4) Zed assistant — conversations under `~/.config/zed` / Application Support. Verify the real shape first, then add + set format_verified:true."
+}

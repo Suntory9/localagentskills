@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Cherry Pick"
+  short_description: "Port a batch of commits safely with cherry-pick"
+  default_prompt: "Use $git-cherry-pick to port a batch of commits safely with cherry-pick."
