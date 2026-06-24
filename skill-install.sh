@@ -74,15 +74,15 @@ select_skills_fzf() {
     [ -e "$AGENTS_DIR/$skill" ] && n_installed=$((n_installed + 1))
   done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort)
 
-  # 构建 start bind：pos(1)+toggle+down+pos(2)+toggle+down...
-  local start_bind="start:"
+  # 构建 load bind：列表加载后预勾选前 N 项（已安装）
+  local start_bind=""
   if [ "$n_installed" -gt 0 ]; then
     for i in $(seq 1 "$n_installed"); do
-      start_bind+="pos($i)+toggle+down+"
+      start_bind+="pos($i)+toggle+"
     done
-    start_bind="${start_bind%+}"  # 去掉末尾多余的 +
+    start_bind+="pos(1)"  # 光标回到第一行
   else
-    start_bind+="pos(1)"
+    start_bind="pos(1)"
   fi
 
   build_fzf_list \
@@ -94,7 +94,7 @@ select_skills_fzf() {
           --prompt='> ' \
           --header='空格/Tab 勾选  Enter 确认  Ctrl-A 全选  / 搜索' \
           --bind="space:toggle+down" \
-          --bind="$start_bind" \
+          --bind="load:$start_bind" \
           --no-preview \
           --color='header:italic,prompt:cyan,marker:green' \
           --marker='✓' \
