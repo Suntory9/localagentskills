@@ -95,8 +95,7 @@ select_skills_fzf() {
           --header='空格/Tab 勾选  Enter 确认  Ctrl-A 全选  / 搜索' \
           --bind="space:toggle+down" \
           --bind="$start_bind" \
-          --preview="cat '$WAREHOUSE/{1}/SKILL.md' 2>/dev/null | head -50" \
-          --preview-window='right:50%:wrap' \
+          --no-preview \
           --color='header:italic,prompt:cyan,marker:green' \
           --marker='✓' \
     | cut -f1
