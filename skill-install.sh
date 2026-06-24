@@ -64,10 +64,12 @@ select_skills_fzf() {
           --with-nth='1,2' \
           --tabstop=4 \
           --prompt='> ' \
-          --header='Tab 多选  Enter 确认  Ctrl-A 全选  / 搜索' \
+          --header='空格/Tab 勾选  Enter 确认  Ctrl-A 全选  / 搜索' \
+          --bind='space:toggle+down' \
           --preview="cat '$WAREHOUSE/{1}/SKILL.md' 2>/dev/null | head -40" \
           --preview-window='right:50%:wrap' \
-          --color='header:italic,prompt:cyan' \
+          --color='header:italic,prompt:cyan,marker:green' \
+          --marker='✓' \
     | cut -f1
 }
 
