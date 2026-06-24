@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Personal Skills — 跨平台安装脚本 (macOS / Linux / Windows)
+"""localagentskills — 跨平台安装脚本 (macOS / Linux / Windows)
 
 一键安装/卸载技能到 Claude Code 或 Codex。
 
@@ -718,7 +718,7 @@ def update_repository_and_resources(args: argparse.Namespace) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="localagentskills",
-        description="跨平台管理 Personal Skills 到 Claude Code / Codex",
+        description="跨平台管理 localagentskills 到 Claude Code / Codex",
     )
     parser.add_argument("--target", default="both", choices=["claude", "codex", "both"],
                         help=argparse.SUPPRESS)
