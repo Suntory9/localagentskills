@@ -22,7 +22,7 @@ echo -e "  → ${BOLD}$TARGET${NC}\n"
 
 AGENTS_DIR="$TARGET/.agents/skills"
 
-# ── 提取 SKILL.md description 首句 ───────────────────────────────────────────
+# ── 提取 SKILL.md 简短描述（≤55字符，按词截断）──────────────────────────────
 skill_desc() {
   local skill_md="$WAREHOUSE/$1/SKILL.md"
   [ -f "$skill_md" ] || { echo "—"; return; }
@@ -35,29 +35,57 @@ if m:
 else:
     m2 = re.search(r"^description:\s*(.+)", text, re.M)
     desc = m2.group(1).strip() if m2 else "—"
-end = desc.find("。")
-if end == -1: end = desc.find(". ", 10)
-if end != -1: desc = desc[:end+1]
-print(desc[:100])
+# 取第一句（中文句号或英文 ". "）
+for sep in ["。", ". "]:
+    pos = desc.find(sep, 5)
+    if 5 < pos < 80:
+        desc = desc[:pos + len(sep)].strip()
+        break
+# 按词截断到 55 字符
+if len(desc) > 55:
+    cut = desc[:55].rfind(" ")
+    desc = desc[:cut if cut > 20 else 55] + "…"
+print(desc)
 PY
 }
 
-# ── 读取所有 skill 名称到数组（兼容 bash 3.2）────────────────────────────────
-read_skills_array() {
-  local -n _arr=$1
-  _arr=()
-  while IFS= read -r s; do
-    _arr+=("$s")
+# ── 构建带已安装标记的列表（已安装排前面）────────────────────────────────────
+build_fzf_list() {
+  local skill desc tag
+  # 已安装的先输出
+  while IFS= read -r skill; do
+    [ -e "$AGENTS_DIR/$skill" ] || continue
+    desc=$(skill_desc "$skill")
+    printf "%s\t%s\n" "$skill" "$desc"
+  done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort)
+  # 未安装的后输出
+  while IFS= read -r skill; do
+    [ -e "$AGENTS_DIR/$skill" ] && continue
+    desc=$(skill_desc "$skill")
+    printf "%s\t%s\n" "$skill" "$desc"
   done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort)
 }
 
-# ── fzf 多选（名称 + 简介）───────────────────────────────────────────────────
+# ── fzf 多选，已安装项预勾选 ──────────────────────────────────────────────────
 select_skills_fzf() {
-  local skill desc
+  # 统计已安装数量，用于生成预勾选 bind
+  local n_installed=0 skill
   while IFS= read -r skill; do
-    desc=$(skill_desc "$skill")
-    printf "%s\t%s\n" "$skill" "$desc"
-  done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort) \
+    [ -e "$AGENTS_DIR/$skill" ] && n_installed=$((n_installed + 1))
+  done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort)
+
+  # 构建 start bind：pos(1)+toggle+down+pos(2)+toggle+down...
+  local start_bind="start:"
+  if [ "$n_installed" -gt 0 ]; then
+    for i in $(seq 1 "$n_installed"); do
+      start_bind+="pos($i)+toggle+down+"
+    done
+    start_bind="${start_bind%+}"  # 去掉末尾多余的 +
+  else
+    start_bind+="pos(1)"
+  fi
+
+  build_fzf_list \
     | fzf --multi \
           --ansi \
           --delimiter='\t' \
@@ -65,15 +93,16 @@ select_skills_fzf() {
           --tabstop=4 \
           --prompt='> ' \
           --header='空格/Tab 勾选  Enter 确认  Ctrl-A 全选  / 搜索' \
-          --bind='space:toggle+down' \
-          --preview="cat '$WAREHOUSE/{1}/SKILL.md' 2>/dev/null | head -40" \
+          --bind="space:toggle+down" \
+          --bind="$start_bind" \
+          --preview="cat '$WAREHOUSE/{1}/SKILL.md' 2>/dev/null | head -50" \
           --preview-window='right:50%:wrap' \
           --color='header:italic,prompt:cyan,marker:green' \
           --marker='✓' \
     | cut -f1
 }
 
-# ── fallback numbered list（含简介）─────────────────────────────────────────
+# ── fallback numbered list（含简介，已安装标记）──────────────────────────────
 select_skills_list() {
   local skills=() skill desc mark i
   while IFS= read -r s; do skills+=("$s"); done < <(ls "$WAREHOUSE" | grep -v '^\.' | sort)
@@ -92,21 +121,16 @@ select_skills_list() {
   echo -e "${CYAN}输入编号（空格分隔，如 1 3 5），a 全选，回车确认：${NC}"
   read -r selection
 
-  if [ "$selection" = "a" ]; then
-    printf '%s\n' "${skills[@]}"
-    return
-  fi
+  [ "$selection" = "a" ] && { printf '%s\n' "${skills[@]}"; return; }
 
   local num idx
   for num in $selection; do
     idx=$((num - 1))
-    if [ "$idx" -ge 0 ] && [ "$idx" -lt "${#skills[@]}" ]; then
-      echo "${skills[$idx]}"
-    fi
+    [ "$idx" -ge 0 ] && [ "$idx" -lt "${#skills[@]}" ] && echo "${skills[$idx]}"
   done
 }
 
-# ── 执行选择（结果存入 SELECTED 数组）────────────────────────────────────────
+# ── 执行选择 ──────────────────────────────────────────────────────────────────
 SELECTED=()
 if command -v fzf &>/dev/null; then
   while IFS= read -r line; do
@@ -118,10 +142,7 @@ else
   done < <(select_skills_list)
 fi
 
-if [ "${#SELECTED[@]}" -eq 0 ]; then
-  echo -e "${YELLOW}未选择任何 skill，退出。${NC}"
-  exit 0
-fi
+[ "${#SELECTED[@]}" -eq 0 ] && { echo -e "${YELLOW}未选择任何 skill，退出。${NC}"; exit 0; }
 
 # ── 安装软链接 ────────────────────────────────────────────────────────────────
 echo -e "\n${BOLD}正在安装到 $AGENTS_DIR ...${NC}"
@@ -154,7 +175,7 @@ else
   echo -e "  ${GREEN}✓ .claude/skills → .agents/skills${NC}"
 fi
 
-# ── .gitignore（git 项目自动忽略 .agents 和 .claude）────────────────────────
+# ── .gitignore ────────────────────────────────────────────────────────────────
 if git -C "$TARGET" rev-parse --git-dir &>/dev/null 2>&1; then
   GITIGNORE="$TARGET/.gitignore"
   added=()
