@@ -1,11 +1,9 @@
-# Agent Skills Hub
+# LocalAgentSkills
 
 统一管理本地 Agent Skills 的仓库。当前仓库集中保存 Claude Code / Codex 可复用的 skills，并提供两种安装方式：
 
 - **推荐**：按项目安装到 `<project>/.agents/skills`，再让 `<project>/.claude/skills` 指向同一份目录。
 - **备用**：全局安装到 `~/.claude/skills` / `~/.codex/skills`。
-
-> 仓库名目前仍是 `PersonalSkills`。如果后续要更准确地表达“统一 skills 仓库”，可以考虑改名为 `AgentSkillsHub`、`LocalAgentSkills` 或 `PersonalAgentSkills`。
 
 ## 这个仓库解决什么问题
 
