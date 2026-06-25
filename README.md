@@ -62,7 +62,8 @@ localagentskills install web-novel-downloader        # 安装指定 skill 到当
 localagentskills install --all                       # 安装全部 skill 到当前项目
 localagentskills install --project /path/to/project  # 安装到指定项目
 localagentskills list                                # 查看可用 skill
-localagentskills status                              # 查看全局安装状态
+localagentskills uninstall                           # 卸载当前项目中的全部 skill
+localagentskills uninstall jira-submit-to-git        # 卸载当前项目中的指定 skill
 ```
 
 安装后目标项目结构大致为：
@@ -101,7 +102,7 @@ localagentskills install --global                    # 全局安装全部 skill
 localagentskills install --global --target claude    # 只装到 Claude Code
 localagentskills install --global --target codex     # 只装到 Codex
 localagentskills install --global --pip              # 同时安装 requirements.txt 依赖
-localagentskills uninstall                           # 卸载全局安装的 skill
+localagentskills uninstall --global                  # 卸载全局安装的 skill
 ```
 
 旧入口 `python3 install.py --list`、`python3 install.py --uninstall` 暂时保留，用于兼容已有脚本。

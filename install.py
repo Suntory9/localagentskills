@@ -514,6 +514,28 @@ def install_project_skills(skills: list[Path], project_dir: Path, force: bool = 
     ensure_gitignore_entries(project_dir, [".agents", ".claude"])
 
 
+def uninstall_project_skills(skills: list[Path], project_dir: Path) -> None:
+    """卸载当前项目 .agents/skills 下的技能。"""
+    agents_dir = project_dir / ".agents" / "skills"
+    print(f"\n{CYAN}==> Uninstalling from project {agents_dir}{NC}")
+    if not agents_dir.is_dir():
+        print(f"  {YELLOW}[MISSING]{NC} project skills directory does not exist")
+        return
+
+    for skill_dir in skills:
+        dest = agents_dir / skill_dir.name
+        if is_symlink_or_junction(dest) or dest.is_symlink():
+            remove_link_or_junction(dest)
+            print(f"  {GREEN}[REMOVED]{NC} {skill_dir.name}")
+        elif dest.is_dir() and (dest / "SKILL.md").is_file():
+            shutil.rmtree(dest)
+            print(f"  {GREEN}[REMOVED]{NC} {skill_dir.name} (was a fallback copy)")
+        elif dest.exists():
+            print(f"  {YELLOW}[SKIP]{NC} {skill_dir.name} exists but is not a managed skill entry")
+        else:
+            print(f"  {GREEN}[NONE]{NC} {skill_dir.name} 未安装")
+
+
 def status_skills(targets: list[Path]) -> None:
     """显示各目标平台下的技能安装状态。"""
     available = {d.name for d in select_skills(None)}
@@ -767,8 +789,13 @@ def main() -> None:
     update_parser.add_argument("--no-readme", action="store_true",
                                help="跳过 README 生成和审计")
 
-    uninstall_parser = subparsers.add_parser("uninstall", help="卸载技能")
-    add_global_options(uninstall_parser)
+    uninstall_parser = subparsers.add_parser("uninstall", help="卸载当前项目中的技能")
+    uninstall_parser.add_argument("skills", nargs="*", help="技能名；省略则卸载当前项目里的全部技能")
+    uninstall_parser.add_argument("--project", default=".", help="目标项目目录 (default: 当前目录)")
+    uninstall_parser.add_argument("--global", dest="global_uninstall", action="store_true",
+                                  help="卸载全局 Claude/Codex 技能目录中的技能")
+    uninstall_parser.add_argument("--target", default="both", choices=["claude", "codex", "both"],
+                                  help="配合 --global 使用的目标平台 (default: both)")
 
     status_parser = subparsers.add_parser("status", help="查看已安装技能")
     status_parser.add_argument("--target", default="both", choices=["claude", "codex", "both"],
@@ -819,7 +846,11 @@ def main() -> None:
     targets = target_dirs(args.target)
 
     if command == "uninstall":
-        uninstall_skills(skills, targets)
+        if args.command == "uninstall" and not getattr(args, "global_uninstall", False):
+            project_dir = Path(args.project).expanduser().resolve()
+            uninstall_project_skills(skills, project_dir)
+        else:
+            uninstall_skills(skills, targets)
     else:
         if command == "update" and not args.no_pull and not git_pull_repo():
             return
