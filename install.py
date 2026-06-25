@@ -119,7 +119,9 @@ def project_skill_present(path: Path) -> bool:
 
 def remove_link_or_junction(path: Path) -> None:
     """删除符号链接或 Windows junction，不递归删除真实目标。"""
-    if path.is_dir():
+    if path.is_symlink():
+        path.unlink()
+    elif path.is_dir():
         path.rmdir()
     else:
         path.unlink()
