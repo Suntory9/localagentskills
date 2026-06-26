@@ -125,23 +125,55 @@ def issue_text(issue):
     return "\n".join(chunks)
 
 
-def add_jira_comment(issue_key, body_text, dry_run=False):
-    if is_duplicate_test_case_comment(issue_key, body_text):
-        print(f"+ skip Jira comment: similar test-case comment already exists for {issue_key}")
-        return
-
-    data = {
-        "body": {
-            "type": "doc",
-            "version": 1,
-            "content": [
-                {
-                    "type": "paragraph",
-                    "content": [{"type": "text", "text": body_text}],
-                }
-            ],
-        }
+def build_jira_comment_body(body_text):
+    return {
+        "type": "doc",
+        "version": 1,
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": body_text}],
+            }
+        ],
     }
+
+
+def comment_self_url(comment):
+    self_url = comment.get("self") or ""
+    marker = "/rest/api/3"
+    if marker in self_url:
+        return self_url.split(marker, 1)[1]
+    comment_id = comment.get("id")
+    if comment_id:
+        return f"/rest/api/3/issue/{comment.get('issueId')}/comment/{comment_id}"
+    return ""
+
+
+def append_test_case_comment(issue_key, comment, existing, body_text, dry_run=False):
+    combined = f"{existing}\n{body_text}"
+    path = comment_self_url(comment)
+    if not path:
+        print(f"+ skip Jira comment update: cannot resolve comment path for {issue_key}")
+        return
+    print(f"+ update Jira comment: append {body_text}")
+    if dry_run:
+        return
+    jira_request("PUT", path, {"body": build_jira_comment_body(combined)})
+
+
+def add_jira_comment(issue_key, body_text, dry_run=False):
+    if body_text.startswith("测试用例："):
+        for comment in read_issue_comments(issue_key):
+            existing = adf_text(comment.get("body") or {}).strip()
+            if not existing.startswith("测试用例："):
+                continue
+            if is_similar_comment(existing, body_text):
+                print(f"+ skip Jira comment: similar test-case comment already exists for {issue_key}")
+                return
+            append_test_case_comment(issue_key, comment, existing, body_text, dry_run=dry_run)
+            return
+
+    data = {"body": build_jira_comment_body(body_text)}
     print(f"+ add Jira comment: {body_text}")
     if dry_run:
         return
