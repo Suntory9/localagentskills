@@ -17,7 +17,7 @@ from pathlib import Path
 BASE_URL = "https://xindong.atlassian.net"
 SKILL_DIR = Path(__file__).resolve().parents[1]
 CONFIG_PATH = SKILL_DIR / "config" / "repos.json"
-UNITY_WEEKLY_SCRIPT = Path("/Users/songdc/.codex/skills/jira-unity-to-main/scripts/update_weekly_report.py")
+WEEKLY_SCRIPT = SKILL_DIR / "scripts" / "update_weekly_report.py"
 
 
 def run(cmd, cwd=None, check=True, capture=True, dry_run=False):
@@ -374,10 +374,10 @@ def commit_and_push(root, branch, files, commit_msg, dry_run=False):
 
 
 def update_weekly(issue_key, dry_run=False):
-    if not UNITY_WEEKLY_SCRIPT.exists():
-        print(f"weekly_report skipped: missing {UNITY_WEEKLY_SCRIPT}", file=sys.stderr)
+    if not WEEKLY_SCRIPT.exists():
+        print(f"weekly_report skipped: missing {WEEKLY_SCRIPT}", file=sys.stderr)
         return
-    run([UNITY_WEEKLY_SCRIPT, issue_key], dry_run=dry_run, capture=False)
+    run([WEEKLY_SCRIPT, issue_key], dry_run=dry_run, capture=False)
 
 
 def sync_proto_to_unity(root, cfg, files, dry_run=False):

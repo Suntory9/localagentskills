@@ -79,7 +79,7 @@ depend on that skill's workflow except for reusing the weekly-report script.
      If a similar visible `测试用例：...` comment already exists, skip writing a
      duplicate and report that it was skipped.
    - Update the programming weekly report using
-     `/Users/songdc/.codex/skills/jira-unity-to-main/scripts/update_weekly_report.py`.
+     `scripts/update_weekly_report.py`.
    - For `ttdbl2_protobuf`, sync changed proto files into
      `/Users/songdc/ttdbl2_unity/Assets/Config/ttdbl2_protobuf/` and tell the
      user Unity still needs its own submit step.
