@@ -142,6 +142,10 @@ localagentskills uninstall --global --all            # 卸载全部全局 skill
 localagentskills status --global                     # 查看全局安装状态
 ```
 
+注意：`localagentskills` 安装的是 skill 文档和随 skill 提供的脚本，不会自动安装外部工具本体。
+例如 `agent-reach` 仍需要本机存在 `agent-reach` CLI；Windows 下可先用
+`Get-Command agent-reach` 或 `agent-reach --version` 验证，缺失时按该 skill 的官方安装指南修复。
+
 ## Skill 列表
 
 <!-- SKILLS_TABLE_START -->

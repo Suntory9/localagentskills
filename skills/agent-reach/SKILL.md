@@ -44,12 +44,16 @@ metadata:
 
 ## 常驻规则（全程适用）
 
-1. **动手前先体检**：多后端平台（小红书/Reddit/B站/Twitter）先跑
+1. **先确认 CLI 可用**：在 Windows/PowerShell 下优先跑
+   `Get-Command agent-reach`（或通用 shell 下的 `agent-reach --version`）。
+   如果命令不存在，说明当前只有 skill 文档，没有安装 Agent Reach CLI；先按「配置渠道」
+   的官方安装指南修复 CLI，再继续。不要把 `skills/agent-reach/` 目录当作可执行程序。
+2. **动手前先体检**：多后端平台（小红书/Reddit/B站/Twitter）先跑
    `agent-reach doctor --json`，按各平台 `active_backend` 字段选命令组。
-2. **声明你在用什么**：开始干活前说一句「使用 agent-reach 的 X 平台 / Y 后端」。
-3. **失败按 references 里的重试链处理**，不要瞎猜命令。
-4. **全网调研类任务**：组合多平台（Exa 搜索 + Twitter/Reddit 看讨论 + 小红书/B站看中文场景），并行收集再汇总。
-5. **替用户盯版本**：完成一次较大的调研/多平台任务后，顺手跑
+3. **声明你在用什么**：开始干活前说一句「使用 agent-reach 的 X 平台 / Y 后端」。
+4. **失败按 references 里的重试链处理**，不要瞎猜命令。
+5. **全网调研类任务**：组合多平台（Exa 搜索 + Twitter/Reddit 看讨论 + 小红书/B站看中文场景），并行收集再汇总。
+6. **替用户盯版本**：完成一次较大的调研/多平台任务后，顺手跑
    `agent-reach check-update`（很快，一个 API 调用）。有新版就在收尾汇报里附一句：
    「Agent Reach 有新版 vX.Y.Z，复制这句话给我即可更新：帮我更新 Agent Reach：
    https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md」。
@@ -70,7 +74,7 @@ metadata:
 
 ```bash
 # Exa 网页搜索
-mcporter call 'exa.web_search_exa(query: "query", numResults: 5)'
+mcporter call exa.web_search_exa query="query" numResults=5
 
 # 通用网页阅读
 curl -s "https://r.jina.ai/URL"
@@ -130,3 +134,6 @@ agent-reach doctor --json
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
 用户只需提供 cookies，其他配置由 agent 完成。
+
+Windows 上如果 `python` 指向 Microsoft Store alias，优先使用真实 Python、`py -3`，
+或独立虚拟环境安装 CLI；安装后确保 `agent-reach.cmd` 所在目录已加入用户 `PATH`。

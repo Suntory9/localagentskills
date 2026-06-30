@@ -28,17 +28,23 @@ these platforms — do not invent your own approach.**
 
 ## Standing rules (apply for the whole session)
 
-1. **Health-check before acting**: for multi-backend platforms (XiaoHongShu /
+1. **Confirm the CLI exists first**: on Windows/PowerShell, run
+   `Get-Command agent-reach`; in a generic shell, run `agent-reach --version`.
+   If the command is missing, the current folder only contains the skill docs,
+   not the Agent Reach CLI. Install or repair the CLI via the official install
+   guide in "Configure a channel" before continuing. Do not treat
+   `skills/agent-reach/` as an executable.
+2. **Health-check before acting**: for multi-backend platforms (XiaoHongShu /
    Reddit / Bilibili / Twitter), run `agent-reach doctor --json` first and
    pick the command group matching each platform's `active_backend`.
-2. **Announce what you use**: say "using agent-reach, platform X via backend Y"
+3. **Announce what you use**: say "using agent-reach, platform X via backend Y"
    before starting.
-3. **On failure, follow the retry chains in references/** — never guess
+4. **On failure, follow the retry chains in references/** — never guess
    commands.
-4. **For broad research tasks**: combine platforms (Exa for web search +
+5. **For broad research tasks**: combine platforms (Exa for web search +
    Twitter/Reddit for discussions + XiaoHongShu/Bilibili for Chinese
    perspectives), collect in parallel, then synthesize.
-5. **Watch versions for the user**: after finishing a substantial
+6. **Watch versions for the user**: after finishing a substantial
    multi-platform task, run `agent-reach check-update` (fast, one API call).
    If a new version exists, append one line to your wrap-up: "Agent Reach
    vX.Y.Z is available — paste this to me to update: 帮我更新 Agent Reach：
@@ -60,7 +66,7 @@ these platforms — do not invent your own approach.**
 
 ```bash
 # Exa web search
-mcporter call 'exa.web_search_exa(query: "query", numResults: 5)'
+mcporter call exa.web_search_exa query="query" numResults=5
 
 # Read any web page
 curl -s "https://r.jina.ai/URL"
@@ -123,3 +129,7 @@ If a channel needs setup, fetch the install guide:
 https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
 
 The user only provides cookies / one extension click; the agent does the rest.
+
+On Windows, if `python` points to the Microsoft Store alias, use a real Python,
+`py -3`, or an isolated virtual environment. After installing, ensure the
+directory containing `agent-reach.cmd` is on the user `PATH`.

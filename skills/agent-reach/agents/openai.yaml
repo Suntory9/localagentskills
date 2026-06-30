@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Reach"
+  short_description: "Route internet research across web search, social platforms, GitHub, video, RSS, and other sources."
+  default_prompt: "Use $agent-reach to check the local CLI with `agent-reach doctor --json`, choose the active backend for the requested platform, and gather current internet evidence."
+
+policy:
+  allow_implicit_invocation: true
